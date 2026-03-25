@@ -28,12 +28,14 @@ app.post('/setup', async (req, res) => {
     { name: 'Victor',   email: 'victorcabralcd1@gmail.com',  password: 'cabral123',   color: '#f59e0b', role: 'member' },
   ]
   try {
+    const { execSync } = require('child_process')
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' })
     for (const u of USERS) {
       const hash = await bcrypt.hash(u.password, 10)
       await prisma.user.upsert({ where: { email: u.email }, update: { name: u.name, password: hash, color: u.color, role: u.role }, create: { ...u, password: hash } })
     }
     await prisma.$disconnect()
-    res.json({ ok: true, msg: 'Usuários criados!' })
+    res.json({ ok: true, msg: 'Tabelas criadas e usuários inseridos!' })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
