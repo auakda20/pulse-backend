@@ -16,22 +16,20 @@ model User {
   role      String   @default("member") // "admin" | "member"
   createdAt DateTime @default(now())
 
-  sessions   DailySession[]
+  sessions   WorkSession[]
   goals      Goal[]
   activities Activity[]
 }
 
-model DailySession {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  date         DateTime  @db.Date
-  checkinAt    DateTime
-  checkoutAt   DateTime?
-  totalMinutes Int?
+model WorkSession {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  date            DateTime  @db.Date
+  checkinAt       DateTime
+  checkoutAt      DateTime?
+  durationMinutes Int?
 
   user User @relation(fields: [userId], references: [id])
-
-  @@unique([userId, date])
 }
 
 model Goal {
