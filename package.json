@@ -4,7 +4,7 @@
   "main": "src/app.js",
   "scripts": {
     "dev": "nodemon src/app.js",
-    "start": "npx prisma db push && node src/app.js",
+    "start": "npx prisma db push --accept-data-loss && node src/app.js",
     "db:push": "prisma db push",
     "db:seed": "node src/utils/seed.js"
   },
