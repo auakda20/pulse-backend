@@ -1,14 +1,9 @@
 const router = require('express').Router()
 const { PrismaClient } = require('@prisma/client')
 const authMw = require('../middleware/auth')
+const { todayBRT } = require('../utils/dateUtils')
 
 const prisma = new PrismaClient()
-
-function today() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d
-}
 
 // Criar meta
 router.post('/', authMw, async (req, res) => {
@@ -16,7 +11,7 @@ router.post('/', authMw, async (req, res) => {
   if (!title || !vertical) return res.status(400).json({ error: 'title e vertical obrigatórios' })
 
   const goal = await prisma.goal.create({
-    data: { userId: req.user.id, date: today(), title, vertical },
+    data: { userId: req.user.id, date: todayBRT(), title, vertical },
   })
   res.json(goal)
 })
@@ -24,7 +19,7 @@ router.post('/', authMw, async (req, res) => {
 // Metas de hoje
 router.get('/today', authMw, async (req, res) => {
   const goals = await prisma.goal.findMany({
-    where:   { userId: req.user.id, date: today() },
+    where:   { userId: req.user.id, date: todayBRT() },
     orderBy: { createdAt: 'asc' },
   })
   res.json(goals)

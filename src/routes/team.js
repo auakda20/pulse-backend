@@ -1,22 +1,8 @@
 const router = require('express').Router()
 const { PrismaClient } = require('@prisma/client')
+const { todayBRT, rangeStartBRT, dateKey } = require('../utils/dateUtils')
 
 const prisma = new PrismaClient()
-
-function todayDate() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function rangeStart(range) {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  if (range === 'week')  d.setDate(d.getDate() - 6)
-  if (range === 'month') d.setDate(d.getDate() - 29)
-  if (range === 'year')  { d.setMonth(d.getMonth() - 11); d.setDate(1) }
-  return d
-}
 
 // Painel público de hoje — sem autenticação
 router.get('/today', async (req, res) => {
@@ -28,15 +14,15 @@ router.get('/today', async (req, res) => {
   const data = await Promise.all(users.map(async (user) => {
     const [sessions, goals, activities] = await Promise.all([
       prisma.workSession.findMany({
-        where:   { userId: user.id, date: todayDate() },
+        where:   { userId: user.id, date: todayBRT() },
         orderBy: { checkinAt: 'asc' },
       }),
       prisma.goal.findMany({
-        where:   { userId: user.id, date: todayDate() },
+        where:   { userId: user.id, date: todayBRT() },
         orderBy: { createdAt: 'asc' },
       }),
       prisma.activity.findMany({
-        where:   { userId: user.id, date: todayDate() },
+        where:   { userId: user.id, date: todayBRT() },
         orderBy: { createdAt: 'desc' },
       }),
     ])
@@ -51,8 +37,10 @@ router.get('/today', async (req, res) => {
 })
 
 // Histórico do time — sem autenticação
+// Retorna por dia: { minutes, goalsCompleted, goalsTotal, activitiesCount }
 router.get('/history', async (req, res) => {
   const range = req.query.range || 'week'
+  const start = rangeStartBRT(range)
 
   const users = await prisma.user.findMany({
     select:  { id: true, name: true, color: true },
@@ -60,21 +48,39 @@ router.get('/history', async (req, res) => {
   })
 
   const data = await Promise.all(users.map(async (user) => {
-    const sessions = await prisma.workSession.findMany({
-      where: {
-        userId:     user.id,
-        date:       { gte: rangeStart(range) },
-        checkoutAt: { not: null },
-      },
-      orderBy: { date: 'asc' },
-    })
+    const [sessions, goals, activities] = await Promise.all([
+      prisma.workSession.findMany({
+        where:   { userId: user.id, date: { gte: start }, checkoutAt: { not: null } },
+        orderBy: { date: 'asc' },
+      }),
+      prisma.goal.findMany({
+        where: { userId: user.id, date: { gte: start } },
+      }),
+      prisma.activity.findMany({
+        where: { userId: user.id, date: { gte: start } },
+      }),
+    ])
 
     const days = {}
+    const ensureDay = (key) => {
+      if (!days[key]) days[key] = { minutes: 0, goalsCompleted: 0, goalsTotal: 0, activitiesCount: 0 }
+    }
+
     for (const s of sessions) {
-      const key = range === 'year'
-        ? s.date.toISOString().slice(0, 7)
-        : s.date.toISOString().slice(0, 10)
-      days[key] = (days[key] || 0) + (s.durationMinutes || 0)
+      const key = dateKey(s.date, range)
+      ensureDay(key)
+      days[key].minutes += s.durationMinutes || 0
+    }
+    for (const g of goals) {
+      const key = dateKey(g.date, range)
+      ensureDay(key)
+      days[key].goalsTotal++
+      if (g.completed) days[key].goalsCompleted++
+    }
+    for (const a of activities) {
+      const key = dateKey(a.date, range)
+      ensureDay(key)
+      days[key].activitiesCount++
     }
 
     return { user, days }

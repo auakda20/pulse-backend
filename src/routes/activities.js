@@ -1,14 +1,9 @@
 const router = require('express').Router()
 const { PrismaClient } = require('@prisma/client')
 const authMw = require('../middleware/auth')
+const { todayBRT } = require('../utils/dateUtils')
 
 const prisma = new PrismaClient()
-
-function today() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d
-}
 
 // Registrar atividade
 router.post('/', authMw, async (req, res) => {
@@ -24,7 +19,7 @@ router.post('/', authMw, async (req, res) => {
 // Atividades de hoje
 router.get('/today', authMw, async (req, res) => {
   const activities = await prisma.activity.findMany({
-    where:   { userId: req.user.id, date: today() },
+    where:   { userId: req.user.id, date: todayBRT() },
     orderBy: { createdAt: 'desc' },
   })
   res.json(activities)
