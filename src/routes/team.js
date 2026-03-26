@@ -89,4 +89,70 @@ router.get('/history', async (req, res) => {
   res.json(data)
 })
 
+// Log do time — metas e atividades completas por dia — sem autenticação
+// Retorna: [{ date, members: [{ user, goals, activities }] }]
+router.get('/log', async (req, res) => {
+  const range = req.query.range || 'week'
+  const start = rangeStartBRT(range)
+
+  const users = await prisma.user.findMany({
+    select:  { id: true, name: true, color: true },
+    orderBy: { name: 'asc' },
+  })
+
+  // Busca todos os dados de uma vez
+  const [allGoals, allActivities] = await Promise.all([
+    prisma.goal.findMany({
+      where:   { date: { gte: start } },
+      orderBy: { createdAt: 'asc' },
+    }),
+    prisma.activity.findMany({
+      where:   { date: { gte: start } },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ])
+
+  // Agrupa por data
+  const daysMap = {}
+  const ensureDay = (dateStr) => {
+    if (!daysMap[dateStr]) daysMap[dateStr] = {}
+  }
+  const ensureMember = (dateStr, userId) => {
+    ensureDay(dateStr)
+    if (!daysMap[dateStr][userId]) {
+      daysMap[dateStr][userId] = { goals: [], activities: [] }
+    }
+  }
+
+  for (const g of allGoals) {
+    const key = dateKey(g.date, 'week') // sempre YYYY-MM-DD no log
+    ensureMember(key, g.userId)
+    daysMap[key][g.userId].goals.push(g)
+  }
+  for (const a of allActivities) {
+    const key = dateKey(a.date, 'week')
+    ensureMember(key, a.userId)
+    daysMap[key][a.userId].activities.push(a)
+  }
+
+  const usersById = Object.fromEntries(users.map(u => [u.id, u]))
+
+  // Formata resposta ordenada por data decrescente
+  const result = Object.entries(daysMap)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([date, membersMap]) => ({
+      date,
+      members: Object.entries(membersMap)
+        .map(([userId, data]) => ({
+          user:       usersById[Number(userId)],
+          goals:      data.goals,
+          activities: data.activities,
+        }))
+        .filter(m => m.user)
+        .sort((a, b) => a.user.name.localeCompare(b.user.name)),
+    }))
+
+  res.json(result)
+})
+
 module.exports = router
