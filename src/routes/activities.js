@@ -11,7 +11,7 @@ router.post('/', authMw, async (req, res) => {
   if (!title || !vertical) return res.status(400).json({ error: 'title e vertical obrigatórios' })
 
   const activity = await prisma.activity.create({
-    data: { userId: req.user.id, date: today(), title, vertical, description: description || null },
+    data: { userId: req.user.id, date: todayBRT(), title, vertical, description: description || null },
   })
   res.json(activity)
 })
