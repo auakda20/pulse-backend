@@ -7,11 +7,11 @@ const prisma = new PrismaClient()
 
 // Criar meta
 router.post('/', authMw, async (req, res) => {
-  const { title, vertical } = req.body
+  const { title, vertical, priority = 'medium' } = req.body
   if (!title || !vertical) return res.status(400).json({ error: 'title e vertical obrigatórios' })
 
   const goal = await prisma.goal.create({
-    data: { userId: req.user.id, date: todayBRT(), title, vertical },
+    data: { userId: req.user.id, date: todayBRT(), title, vertical, priority },
   })
   res.json(goal)
 })
@@ -33,6 +33,19 @@ router.patch('/:id', authMw, async (req, res) => {
   const updated = await prisma.goal.update({
     where: { id: goal.id },
     data:  { completed: !goal.completed },
+  })
+  res.json(updated)
+})
+
+// Atualizar prioridade
+router.patch('/:id/priority', authMw, async (req, res) => {
+  const { priority } = req.body
+  const goal = await prisma.goal.findUnique({ where: { id: Number(req.params.id) } })
+  if (!goal || goal.userId !== req.user.id) return res.status(404).json({ error: 'Meta não encontrada' })
+
+  const updated = await prisma.goal.update({
+    where: { id: goal.id },
+    data:  { priority },
   })
   res.json(updated)
 })
