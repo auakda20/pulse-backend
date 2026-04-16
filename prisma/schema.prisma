@@ -69,3 +69,16 @@ model Note {
 
   @@unique([userId, date])
 }
+
+// Demandas compartilhadas — visíveis para todo o time
+model Demand {
+  id          String   @id @default(cuid())
+  text        String
+  priority    String   @default("média")
+  dueDate     String?
+  done        Boolean  @default(false)
+  sourceName  String
+  sourceColor String
+  sourceType  String
+  createdAt   DateTime @default(now())
+}
