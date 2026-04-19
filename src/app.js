@@ -17,6 +17,7 @@ app.use('/api/activities', require('./routes/activities'))
 app.use('/api/team',       require('./routes/team'))
 app.use('/api/notes',      require('./routes/notes'))
 app.use('/api/demands',    require('./routes/demands'))
+app.use('/api/pendencias', require('./routes/pendencias'))
 
 app.get('/health', (_, res) => res.json({ ok: true }))
 

@@ -82,3 +82,15 @@ model Demand {
   sourceType  String
   createdAt   DateTime @default(now())
 }
+
+// Pendências críticas dos projetos — compartilhado com todo o time
+model Pendencia {
+  id        String   @id @default(cuid())
+  text      String
+  project   String   // ex: CasaPrime, Facilis, SureThing, STUDIO, etc.
+  priority  String   @default("alta") // alta | media
+  done      Boolean  @default(false)
+  doneBy    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
