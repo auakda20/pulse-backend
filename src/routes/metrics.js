@@ -27,7 +27,15 @@ router.put('/:mes', authMw, adminOnly, async (req, res) => {
   let projetos = '[]'
   try {
     const arr = Array.isArray(b.projetos) ? b.projetos : []
-    projetos = JSON.stringify(arr.map(p => ({ nome: String(p.nome || ''), mrr: num(p.mrr), receita: num(p.receita) })).filter(p => p.nome))
+    projetos = JSON.stringify(arr.map(p => ({
+      nome:        String(p.nome || ''),
+      mrr:         num(p.mrr),
+      receita:     num(p.receita),
+      investido:   num(p.investido),
+      leads:       Math.round(num(p.leads)),
+      convertidos: Math.round(num(p.convertidos)),
+      arrecadado:  num(p.arrecadado),
+    })).filter(p => p.nome))
   } catch { projetos = '[]' }
 
   const data = {
