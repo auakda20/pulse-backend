@@ -29,12 +29,14 @@ module.exports = async function bootSeed() {
       console.log('[bootSeed] usuários iniciais criados (admin@pulse.com / pulse123)')
     }
 
-    if ((await prisma.runbookPage.count()) === 0) {
-      for (const p of PAGES) {
-        await prisma.runbookPage.create({ data: p })
-      }
-      console.log(`[bootSeed] runbook inicial criado (${PAGES.length} página(s))`)
+    // Por slug: cria só as páginas que ainda não existem. NUNCA sobrescreve
+    // edições do admin (páginas já existentes ficam intocadas).
+    let novas = 0
+    for (const p of PAGES) {
+      const existe = await prisma.runbookPage.findUnique({ where: { slug: p.slug } })
+      if (!existe) { await prisma.runbookPage.create({ data: p }); novas++ }
     }
+    if (novas) console.log(`[bootSeed] runbook: ${novas} página(s) nova(s) criada(s)`)
   } catch (e) {
     console.error('[bootSeed] ignorado (não bloqueia o boot):', e.message)
   }
