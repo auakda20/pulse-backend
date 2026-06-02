@@ -1,6 +1,7 @@
 const router = require('express').Router()
 const { PrismaClient } = require('@prisma/client')
 const authMw = require('../middleware/auth')
+const { notifyDiscord } = require('../utils/notify')
 
 const prisma = new PrismaClient()
 
@@ -21,6 +22,8 @@ router.post('/', authMw, async (req, res) => {
   const pendencia = await prisma.pendencia.create({
     data: { text, project, priority },
   })
+  const emoji = priority === 'alta' ? '🔴' : '🟡'
+  notifyDiscord(`${emoji} Nova pendência [${pendencia.project}] (${pendencia.priority}): ${pendencia.text}`)
   res.json(pendencia)
 })
 
