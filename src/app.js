@@ -23,5 +23,9 @@ app.use('/api/runbook',    require('./routes/runbook'))
 app.get('/health', (_, res) => res.json({ ok: true }))
 
 
+const bootSeed = require('./utils/bootSeed')
 const PORT = process.env.PORT || 3002
-app.listen(PORT, () => console.log(`Pulse backend rodando na porta ${PORT}`))
+app.listen(PORT, async () => {
+  console.log(`Pulse backend rodando na porta ${PORT}`)
+  await bootSeed()  // popula banco vazio (usuários + runbook); no-op se já tem dados
+})

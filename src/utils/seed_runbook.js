@@ -83,6 +83,12 @@ async function main() {
   }
 }
 
-main()
-  .then(() => { console.log('Seed do runbook concluído.'); return prisma.$disconnect() })
-  .catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1) })
+module.exports = { PAGES }
+
+// Só executa o seed quando rodado direto (node src/utils/seed_runbook.js),
+// não quando importado pelo bootSeed.
+if (require.main === module) {
+  main()
+    .then(() => { console.log('Seed do runbook concluído.'); return prisma.$disconnect() })
+    .catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1) })
+}
