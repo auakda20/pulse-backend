@@ -19,6 +19,14 @@ const USERS = [
   { name: 'Membro 2', email: 'membro2@pulse.com', password: 'pulse123', color: '#f59e0b', role: 'member' },
 ]
 
+const PROJECTS = [
+  { nome: 'Kelsen',      vertical: 'auto', status: 'ativo',     cor: '#6366f1', ordem: 0, responsavel: 'Kauã',  descricao: 'IA jurídica premium (produto nº1).' },
+  { nome: 'CasaPrime',   vertical: 'auto', status: 'pausado',   cor: '#10b981', ordem: 1, responsavel: 'Kauã',  descricao: 'Plataforma imobiliária (web + mobile).' },
+  { nome: 'IA Contábil', vertical: 'auto', status: 'planejado', cor: '#f59e0b', ordem: 2, responsavel: 'Kauã',  descricao: 'Módulo do Kelsen (após 50+ pagantes).' },
+  { nome: 'Arbly',       vertical: 'auto', status: 'ativo',     cor: '#a855f7', ordem: 3, responsavel: 'Pedro', descricao: 'SaaS surebets/valuebets (side business).' },
+  { nome: 'STUDIO',      vertical: 'studio', status: 'ativo',   cor: '#ec4899', ordem: 0, responsavel: 'Leandro', descricao: 'Produção criativa / ORIGINALS (motor de caixa).' },
+]
+
 module.exports = async function bootSeed() {
   try {
     if ((await prisma.user.count()) === 0) {
@@ -37,6 +45,12 @@ module.exports = async function bootSeed() {
       if (!existe) { await prisma.runbookPage.create({ data: p }); novas++ }
     }
     if (novas) console.log(`[bootSeed] runbook: ${novas} página(s) nova(s) criada(s)`)
+
+    // Projetos: cria só se a tabela estiver vazia (depois é gerido pela tela).
+    if ((await prisma.project.count()) === 0) {
+      for (const p of PROJECTS) await prisma.project.create({ data: p })
+      console.log(`[bootSeed] projetos iniciais criados (${PROJECTS.length})`)
+    }
   } catch (e) {
     console.error('[bootSeed] ignorado (não bloqueia o boot):', e.message)
   }

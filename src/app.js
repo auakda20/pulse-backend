@@ -19,6 +19,7 @@ app.use('/api/notes',      require('./routes/notes'))
 app.use('/api/demands',    require('./routes/demands'))
 app.use('/api/pendencias', require('./routes/pendencias'))
 app.use('/api/runbook',    require('./routes/runbook'))
+app.use('/api/projects',   require('./routes/projects'))
 
 app.get('/health', (_, res) => res.json({ ok: true }))
 

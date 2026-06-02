@@ -110,3 +110,23 @@ model RunbookPage {
 
   @@index([vertical, ordem])
 }
+
+// Hub de Projetos — visão de empresa de todas as ventures.
+// Leitura: todos. Escrita: só admin.
+model Project {
+  id          Int      @id @default(autoincrement())
+  nome        String
+  vertical    String   // "auto" | "studio"
+  status      String   @default("ativo") // ativo | pausado | planejado | arquivado
+  descricao   String?  @db.Text
+  responsavel String?
+  repoUrl     String?
+  deployUrl   String?
+  docsUrl     String?
+  cor         String   @default("#6366f1")
+  ordem       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([vertical, ordem])
+}
