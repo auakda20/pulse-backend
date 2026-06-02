@@ -130,3 +130,17 @@ model Project {
 
   @@index([vertical, ordem])
 }
+
+// Métricas / KPIs — snapshot mensal. Acesso e edição EXCLUSIVOS do admin.
+model KpiSnapshot {
+  id              Int      @id @default(autoincrement())
+  mes             String   @unique  // "YYYY-MM"
+  caixa           Float    @default(0)
+  gastos          Float    @default(0)
+  kelsenCadastros Int      @default(0)
+  kelsenTestando  Int      @default(0)
+  kelsenPagantes  Int      @default(0)
+  projetos        String   @db.Text @default("[]") // JSON: [{nome, mrr, receita}]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
