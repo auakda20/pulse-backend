@@ -10,6 +10,8 @@ function adminOnly(req, res, next) {
   next()
 }
 
+const isStudio = (n) => String(n || '').trim().toLowerCase() === 'studio'
+
 // Listar todos os snapshots (admin)
 router.get('/', authMw, adminOnly, async (req, res) => {
   const snaps = await prisma.kpiSnapshot.findMany({ orderBy: { mes: 'asc' } })
@@ -27,15 +29,27 @@ router.put('/:mes', authMw, adminOnly, async (req, res) => {
   let projetos = '[]'
   try {
     const arr = Array.isArray(b.projetos) ? b.projetos : []
-    projetos = JSON.stringify(arr.map(p => ({
-      nome:        String(p.nome || ''),
-      mrr:         num(p.mrr),
-      receita:     num(p.receita),
-      investido:   num(p.investido),
-      leads:       Math.round(num(p.leads)),
-      convertidos: Math.round(num(p.convertidos)),
-      arrecadado:  num(p.arrecadado),
-    })).filter(p => p.nome))
+    projetos = JSON.stringify(arr.map(p => {
+      const base = {
+        nome:        String(p.nome || ''),
+        mrr:         num(p.mrr),
+        receita:     num(p.receita),
+        investido:   num(p.investido),
+        leads:       Math.round(num(p.leads)),
+        convertidos: Math.round(num(p.convertidos)),
+        arrecadado:  num(p.arrecadado),
+      }
+      // STUDIO: trabalhos freelance avulsos. Cada um = 1 convertido; soma = arrecadado.
+      if (isStudio(base.nome) && Array.isArray(p.freelas)) {
+        const freelas = p.freelas
+          .map(f => ({ descricao: String(f.descricao || ''), valor: num(f.valor) }))
+          .filter(f => f.descricao || f.valor)
+        base.freelas = freelas
+        base.convertidos = freelas.length
+        base.arrecadado = freelas.reduce((a, f) => a + f.valor, 0)
+      }
+      return base
+    }).filter(p => p.nome))
   } catch { projetos = '[]' }
 
   const data = {
