@@ -22,8 +22,7 @@ router.post('/', authMw, async (req, res) => {
   const pendencia = await prisma.pendencia.create({
     data: { text, project, priority },
   })
-  const emoji = priority === 'alta' ? '🔴' : '🟡'
-  notifyDiscord(`${emoji} Nova pendência [${pendencia.project}] (${pendencia.priority}): ${pendencia.text}`)
+  notifyDiscord(`Nova pendência [${pendencia.project}] (${pendencia.priority}): ${pendencia.text}`)
   res.json(pendencia)
 })
 

@@ -73,7 +73,7 @@ const PAGES = [
 <h2>O que é</h2>
 <p>IA jurídica premium: gera petições/contratos/peças fundamentadas em jurisprudência <strong>real e verificável</strong>. Posicionamento: <em>"a única IA jurídica que não alucina"</em>. É o produto principal da empresa.</p>
 <hr>
-<h2>⚠️ A regra de ouro: anti-alucinação é SAGRADA</h2>
+<h2>A regra de ouro: anti-alucinação é SAGRADA</h2>
 <ul>
 <li>Toda citação tem <strong>fonte real com link</strong>. Sem fonte → o sistema <strong>avisa</strong>, não inventa.</li>
 <li>Há uma <strong>2ª passada (Opus)</strong> que confere tese vs ementa real e sinaliza lei revogada.</li>
