@@ -94,3 +94,19 @@ model Pendencia {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Runbook "Como Trabalhamos" — onboarding/metodologia por vertical.
+// Leitura: todos os membros. Edição: apenas admin (gating no route).
+model RunbookPage {
+  id        Int      @id @default(autoincrement())
+  vertical  String   // "auto" | "studio"
+  categoria String   @default("processo") // "lei_geral" | "processo"
+  slug      String   @unique
+  titulo    String
+  conteudo  String   @db.Text @default("")
+  ordem     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vertical, ordem])
+}
