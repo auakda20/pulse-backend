@@ -29,6 +29,8 @@ model WorkSession {
   checkinAt       DateTime
   checkoutAt      DateTime?
   durationMinutes Int?
+  lastHeartbeatAt DateTime?           // C: último sinal de vida (anti-ocioso)
+  autoClosed      Boolean   @default(false)  // fechada pelo sistema (teto/ocioso)
 
   user User @relation(fields: [userId], references: [id])
 }
