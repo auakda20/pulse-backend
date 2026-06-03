@@ -29,6 +29,9 @@ app.get('/health', (_, res) => res.json({ ok: true }))
 
 const bootSeed = require('./utils/bootSeed')
 const { checkReminders } = require('./utils/reminders')
+const { autoCloseStale } = require('./utils/worktime')
+const { PrismaClient } = require('@prisma/client')
+const _prisma = new PrismaClient()
 const PORT = process.env.PORT || 3002
 app.listen(PORT, async () => {
   console.log(`Pulse backend rodando na porta ${PORT}`)
@@ -37,5 +40,10 @@ app.listen(PORT, async () => {
   // Lembretes do calendário: checa a cada 5 min e notifica via Pulse (Discord/WhatsApp).
   setInterval(() => {
     checkReminders().catch((e) => console.error('[reminders] erro (ignorado):', e.message))
+  }, 5 * 60 * 1000)
+
+  // Anti-farm: fecha sessões ociosas (sem heartbeat) ou que estouraram o teto de 5h.
+  setInterval(() => {
+    autoCloseStale(_prisma).catch((e) => console.error('[worktime] auto-close erro (ignorado):', e.message))
   }, 5 * 60 * 1000)
 })
