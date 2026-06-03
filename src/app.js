@@ -28,8 +28,14 @@ app.get('/health', (_, res) => res.json({ ok: true }))
 
 
 const bootSeed = require('./utils/bootSeed')
+const { checkReminders } = require('./utils/reminders')
 const PORT = process.env.PORT || 3002
 app.listen(PORT, async () => {
   console.log(`Pulse backend rodando na porta ${PORT}`)
   await bootSeed()  // popula banco vazio (usuários + runbook); no-op se já tem dados
+
+  // Lembretes do calendário: checa a cada 5 min e notifica via Pulse (Discord/WhatsApp).
+  setInterval(() => {
+    checkReminders().catch((e) => console.error('[reminders] erro (ignorado):', e.message))
+  }, 5 * 60 * 1000)
 })

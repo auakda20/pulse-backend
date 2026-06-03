@@ -144,3 +144,22 @@ model KpiSnapshot {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+// Calendário do Pulse — eventos do time. Aparecem no feed ICS (Google/Apple
+// Calendar) e o próprio Pulse dispara o lembrete (Discord/WhatsApp) na hora certa.
+model CalendarEvent {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?   @db.Text
+  startsAt      DateTime              // data/hora do evento
+  allDay        Boolean   @default(false)
+  remindMinutes Int       @default(60) // quantos min antes notificar (0 = sem lembrete)
+  vertical      String?               // opcional: auto | studio | originals | ...
+  createdBy     String?               // nome de quem criou
+  remindedAt    DateTime?             // quando o lembrete foi disparado (evita duplicar)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([startsAt])
+  @@index([remindedAt])
+}
