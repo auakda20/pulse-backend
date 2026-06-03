@@ -1,12 +1,15 @@
 /**
- * Geração de feed iCalendar (.ics) para as Demands do Pulse.
- * Funções puras (testáveis sem rede/DB). O feed é consumido por Google/Apple
- * Calendar assinando a URL /api/calendar/feed.ics?token=<CALENDAR_FEED_TOKEN>.
+ * Geração de feed iCalendar (.ics) do Pulse — Demands (deadlines) + CalendarEvents.
+ * Funções puras (testáveis sem rede/DB). Consumido assinando a URL
+ * /api/calendar/feed.ics?token=<CALENDAR_FEED_TOKEN> no Google/Apple Calendar.
+ *
+ * NÃO emitimos VALARM de propósito: a notificação é disparada pelo PRÓPRIO Pulse
+ * (cron → Discord/WhatsApp), confiável em qualquer cliente. O feed é só visão.
  */
 
 function _pad(n) { return String(n).padStart(2, '0') }
 
-// dueDate é String livre no schema — aceitamos os formatos mais comuns.
+// dueDate (Demand) é String livre no schema — aceitamos os formatos mais comuns.
 function parseDueDate(s) {
   if (!s || typeof s !== 'string') return null
   const t = s.trim()
@@ -27,11 +30,11 @@ function isDueToday(s, now = new Date()) {
     && d.getUTCDate() === brt.getDate()
 }
 
-function _fmtDate(d) {
+function _fmtDate(d) {  // all-day: YYYYMMDD (em UTC)
   return `${d.getUTCFullYear()}${_pad(d.getUTCMonth() + 1)}${_pad(d.getUTCDate())}`
 }
 
-function _fmtStamp(d) {
+function _fmtStamp(d) { // timed/UTC: YYYYMMDDTHHMMSSZ
   return `${d.getUTCFullYear()}${_pad(d.getUTCMonth() + 1)}${_pad(d.getUTCDate())}`
     + `T${_pad(d.getUTCHours())}${_pad(d.getUTCMinutes())}${_pad(d.getUTCSeconds())}Z`
 }
@@ -43,38 +46,74 @@ function _esc(s) {
     .replace(/\r?\n/g, '\\n')
 }
 
+// Mapeia Demands (com dueDate parseável) → eventos all-day.
+function demandsToEvents(demands) {
+  const out = []
+  for (const d of demands || []) {
+    const due = parseDueDate(d.dueDate)
+    if (!due) continue
+    out.push({
+      uid: `demand-${d.id}@pulse`,
+      summary: `[${d.sourceName || '—'}] ${d.text || ''}`,
+      description: `Demanda · prioridade: ${d.priority || '—'}`,
+      start: due,
+      allDay: true,
+    })
+  }
+  return out
+}
+
+// Mapeia CalendarEvents → eventos (com hora ou all-day).
+function calendarEventsToEvents(rows) {
+  const out = []
+  for (const e of rows || []) {
+    const start = e.startsAt instanceof Date ? e.startsAt : new Date(e.startsAt)
+    if (isNaN(start.getTime())) continue
+    out.push({
+      uid: `event-${e.id}@pulse`,
+      summary: e.title || '(sem título)',
+      description: e.description || '',
+      start,
+      allDay: !!e.allDay,
+    })
+  }
+  return out
+}
+
 /**
- * Monta o .ics a partir de uma lista de Demands. Demandas sem dueDate parseável
- * são ignoradas (não quebram o feed). Eventos são "all-day" (VALUE=DATE).
+ * Monta o .ics a partir de eventos normalizados:
+ *   { uid, summary, description, start: Date, allDay: bool }
+ * all-day → VALUE=DATE (DTEND no dia seguinte); com hora → DTSTART/DTEND em UTC (+1h).
  */
-function buildICS(demands, opts = {}) {
-  const name = opts.name || 'Pulse — Demandas'
+function buildICS(events, opts = {}) {
+  const name = opts.name || 'Pulse'
   const stamp = _fmtStamp(opts.now || new Date())
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Pulse//Demandas//PT-BR',
+    'PRODID:-//Pulse//Calendario//PT-BR',
     'CALSCALE:GREGORIAN',
     `X-WR-CALNAME:${_esc(name)}`,
     `NAME:${_esc(name)}`,
   ]
-  for (const d of demands || []) {
-    const due = parseDueDate(d.dueDate)
-    if (!due) continue
-    const end = new Date(due.getTime() + 86400000) // all-day → DTEND = dia seguinte
-    lines.push(
-      'BEGIN:VEVENT',
-      `UID:demand-${d.id}@pulse`,
-      `DTSTAMP:${stamp}`,
-      `DTSTART;VALUE=DATE:${_fmtDate(due)}`,
-      `DTEND;VALUE=DATE:${_fmtDate(end)}`,
-      `SUMMARY:${_esc(`[${d.sourceName || '—'}] ${d.text || ''}`)}`,
-      `DESCRIPTION:${_esc(`Prioridade: ${d.priority || '—'}${d.done ? ' · concluída' : ''}`)}`,
-      'END:VEVENT',
-    )
+  for (const ev of events || []) {
+    if (!ev || !(ev.start instanceof Date) || isNaN(ev.start.getTime())) continue
+    lines.push('BEGIN:VEVENT', `UID:${ev.uid}`, `DTSTAMP:${stamp}`)
+    if (ev.allDay) {
+      const end = new Date(ev.start.getTime() + 86400000)
+      lines.push(`DTSTART;VALUE=DATE:${_fmtDate(ev.start)}`, `DTEND;VALUE=DATE:${_fmtDate(end)}`)
+    } else {
+      const end = new Date(ev.start.getTime() + 3600000) // duração padrão 1h
+      lines.push(`DTSTART:${_fmtStamp(ev.start)}`, `DTEND:${_fmtStamp(end)}`)
+    }
+    lines.push(`SUMMARY:${_esc(ev.summary)}`)
+    if (ev.description) lines.push(`DESCRIPTION:${_esc(ev.description)}`)
+    lines.push('END:VEVENT')
   }
   lines.push('END:VCALENDAR')
   return lines.join('\r\n') + '\r\n'
 }
 
-module.exports = { parseDueDate, isDueToday, buildICS }
+module.exports = {
+  parseDueDate, isDueToday, buildICS, demandsToEvents, calendarEventsToEvents,
+}
