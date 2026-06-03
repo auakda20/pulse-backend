@@ -1,6 +1,8 @@
 const router = require('express').Router()
 const { PrismaClient } = require('@prisma/client')
 const authMw = require('../middleware/auth')
+const { notify } = require('../utils/notify')
+const { isDueToday } = require('../utils/ics')
 
 const prisma = new PrismaClient()
 
@@ -21,6 +23,13 @@ router.post('/', authMw, async (req, res) => {
   const demand = await prisma.demand.create({
     data: { text, priority, dueDate: dueDate || null, sourceName, sourceColor, sourceType },
   })
+  // Discord sempre; WhatsApp se prioridade alta ou vencendo hoje (urgente).
+  const urgente = String(demand.priority || '').toLowerCase().includes('alta') || isDueToday(demand.dueDate)
+  notify({
+    text: `📌 Nova demanda [${demand.sourceName}] (${demand.priority})`
+      + `${demand.dueDate ? ' · vence ' + demand.dueDate : ''}: ${demand.text}`,
+    urgent: urgente,
+  })
   res.json(demand)
 })
 
@@ -39,6 +48,10 @@ router.patch('/:id', authMw, async (req, res) => {
       ...(done      !== undefined && { done }),
     },
   })
+  // Notifica o time quando uma demanda é concluída (só na transição p/ done).
+  if (done === true && !demand.done) {
+    notify({ text: `✅ Demanda concluída [${updated.sourceName}]: ${updated.text}` })
+  }
   res.json(updated)
 })
 
