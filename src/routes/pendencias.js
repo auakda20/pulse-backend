@@ -1,7 +1,7 @@
 const router = require('express').Router()
 const { PrismaClient } = require('@prisma/client')
 const authMw = require('../middleware/auth')
-const { notifyDiscord } = require('../utils/notify')
+const { notify } = require('../utils/notify')
 
 const prisma = new PrismaClient()
 
@@ -22,7 +22,11 @@ router.post('/', authMw, async (req, res) => {
   const pendencia = await prisma.pendencia.create({
     data: { text, project, priority },
   })
-  notifyDiscord(`Nova pendência [${pendencia.project}] (${pendencia.priority}): ${pendencia.text}`)
+  // Discord sempre; WhatsApp só se prioridade alta (urgente).
+  notify({
+    text: `🔴 Nova pendência [${pendencia.project}] (${pendencia.priority}): ${pendencia.text}`,
+    urgent: String(pendencia.priority || '').toLowerCase() === 'alta',
+  })
   res.json(pendencia)
 })
 
@@ -68,6 +72,10 @@ router.patch('/:id', authMw, async (req, res) => {
       ...(doneBy   !== undefined && { doneBy }),
     },
   })
+  // Notifica o time quando uma pendência é resolvida (só na transição p/ done).
+  if (done === true && !pendencia.done) {
+    notify({ text: `✅ Pendência resolvida [${updated.project}]${updated.doneBy ? ' por ' + updated.doneBy : ''}: ${updated.text}` })
+  }
   res.json(updated)
 })
 
